@@ -103,6 +103,7 @@ async def review_candidate(
             actor=payload.reviewed_by,
             new_value={"reason": payload.dismiss_reason},
         ))
+        await db.commit()
         return ReviewResponse(candidate_id=candidate_id, verdict="dismissed",
                               message="Candidate dismissed. Not entered into the commitment ledger.")
 
@@ -166,8 +167,15 @@ async def review_candidate(
     except Exception:
         pass  # Capability matching is best-effort; commitment is created regardless
 
-    await detect_conflicts(db, str(commitment.id))
-    await compute_risk(db, str(commitment.id))
+    try:
+        await detect_conflicts(db, str(commitment.id))
+    except Exception:
+        pass
+
+    try:
+        await compute_risk(db, str(commitment.id))
+    except Exception:
+        pass
 
     db.add(AuditLog(
         workspace_id=candidate.workspace_id,
@@ -177,6 +185,7 @@ async def review_candidate(
         actor=payload.reviewed_by,
         new_value={"statement": statement[:100], "type": candidate.commitment_type.value},
     ))
+    await db.commit()
 
     legal_note = " Routed to legal review queue." if is_legal_tier else ""
     return ReviewResponse(

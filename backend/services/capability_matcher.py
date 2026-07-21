@@ -14,6 +14,7 @@ from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 
+from uuid import UUID
 from models.commitment import Commitment
 from models.capability import CapabilityRegistry, CapabilityMatch, CapabilityStatus
 from models.audit import AuditLog
@@ -41,7 +42,7 @@ async def match_capability(
       current | on_roadmap | unsupported | unknown
     unknown is returned when no match exceeds threshold OR data is incomplete.
     """
-    result = await db.execute(select(Commitment).where(Commitment.id == commitment_id))
+    result = await db.execute(select(Commitment).where(Commitment.id == UUID(commitment_id)))
     commitment = result.scalar_one_or_none()
     if not commitment:
         raise ValueError(f"Commitment {commitment_id} not found.")

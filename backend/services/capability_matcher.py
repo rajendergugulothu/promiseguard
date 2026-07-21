@@ -99,6 +99,7 @@ async def match_capability(
             )
 
     db.add(match)
+    await db.flush()  # populate match.id before referencing it in AuditLog
     db.add(AuditLog(
         workspace_id=commitment.workspace_id,
         entity_type="capability_match",

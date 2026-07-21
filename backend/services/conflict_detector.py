@@ -108,7 +108,7 @@ async def detect_conflicts(db: AsyncSession, commitment_id: str) -> list[Conflic
             break
 
     if conflicts:
-        await db.flush()
+        await db.flush()  # populate conflict IDs before AuditLog
         for c in conflicts:
             db.add(AuditLog(
                 workspace_id=commitment.workspace_id,

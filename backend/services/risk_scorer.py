@@ -8,6 +8,7 @@ Capped at 1.0.
 """
 
 from datetime import date, datetime, timezone
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -42,7 +43,7 @@ def _feasibility(match_status: CapabilityStatus | None) -> float:
 
 async def compute_risk(db: AsyncSession, commitment_id: str) -> RiskScore:
     """Compute and store risk score for a commitment."""
-    result = await db.execute(select(Commitment).where(Commitment.id == commitment_id))
+    result = await db.execute(select(Commitment).where(Commitment.id == UUID(commitment_id)))
     commitment = result.scalar_one_or_none()
     if not commitment:
         raise ValueError(f"Commitment {commitment_id} not found.")

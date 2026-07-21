@@ -5,6 +5,7 @@ Runs after every commitment is confirmed.
 
 import os
 from datetime import date
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from anthropic import AsyncAnthropic
@@ -19,7 +20,7 @@ client = AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
 
 async def detect_conflicts(db: AsyncSession, commitment_id: str) -> list[Conflict]:
     """Run all four conflict detection checks for a newly confirmed commitment."""
-    result = await db.execute(select(Commitment).where(Commitment.id == commitment_id))
+    result = await db.execute(select(Commitment).where(Commitment.id == UUID(commitment_id)))
     commitment = result.scalar_one_or_none()
     if not commitment:
         raise ValueError(f"Commitment {commitment_id} not found.")

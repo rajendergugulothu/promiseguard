@@ -114,7 +114,11 @@ async def review_candidate(
         candidate.edited_statement = payload.edited_statement
 
     # Normalise due date
-    due_date, due_conf = await normalize_date(candidate.raw_due_date)
+    try:
+        due_date, due_conf = await normalize_date(candidate.raw_due_date)
+    except Exception:
+        from models.commitment import DateConfidence
+        due_date, due_conf = None, DateConfidence.unknown
 
     # Determine legal gate
     is_legal_tier = candidate.commitment_type.value == "security_compliance"

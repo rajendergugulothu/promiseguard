@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, type Workspace, type Candidate, type Commitment, type Alert } from "@/lib/api";
 
-const SEVERITY_COLOR: Record<string, string> = {
-  critical: "bg-red-100 text-red-700",
-  high: "bg-orange-100 text-orange-700",
-  medium: "bg-yellow-100 text-yellow-700",
-  low: "bg-gray-100 text-gray-600",
-};
+const NAV_ITEMS = [
+  { label: "AE Review Queue", path: "review", icon: "🔍", desc: "Candidates awaiting confirmation before entering the ledger", badgeColor: "bg-blue-600" },
+  { label: "Commitment Ledger", path: "ledger", icon: "📋", desc: "All confirmed commitments across accounts", badgeColor: "bg-gray-500" },
+  { label: "Portfolio Dashboard", path: "portfolio", icon: "📊", desc: "CCO view — ARR exposure and risk by account", badgeColor: "bg-orange-500" },
+  { label: "Legal Queue", path: "legal", icon: "⚖️", desc: "Security and compliance commitments awaiting legal review", badgeColor: "bg-red-500" },
+  { label: "Conflicts", path: "conflicts", icon: "⚠️", desc: "Cross-customer and date-infeasible conflicts", badgeColor: "bg-yellow-500" },
+  { label: "Alerts", path: "alerts", icon: "🔔", desc: "Active alerts across all commitments", badgeColor: "bg-gray-500" },
+];
 
 export default function WorkspaceDashboard() {
   const { id } = useParams<{ id: string }>();
@@ -30,56 +32,69 @@ export default function WorkspaceDashboard() {
   const atRisk = commitments.filter(c => c.status === "at_risk");
   const unowned = openCommitments.filter(c => !c.responsible_owner);
 
-  const navItems = [
-    { label: "AE Review Queue", path: "review", badge: candidates.length, color: "blue",
-      desc: "Commitment candidates awaiting AE confirmation" },
-    { label: "Commitment Ledger", path: "ledger", badge: openCommitments.length, color: "gray",
-      desc: "All confirmed commitments across accounts" },
-    { label: "Portfolio Dashboard", path: "portfolio", badge: atRisk.length, color: "orange",
-      desc: "CCO view — ARR exposure and risk by account" },
-    { label: "Legal Queue", path: "legal", badge: null, color: "red",
-      desc: "Security and compliance commitments awaiting legal review" },
-    { label: "Conflicts", path: "conflicts", badge: null, color: "yellow",
-      desc: "Cross-customer and date-infeasible conflicts" },
-    { label: "Alerts", path: "alerts", badge: alerts.length, color: "gray",
-      desc: "Active alerts across all commitments" },
+  const badges: Record<string, number> = {
+    review: candidates.length,
+    ledger: openCommitments.length,
+    portfolio: atRisk.length,
+    alerts: alerts.length,
+  };
+
+  const metrics = [
+    { label: "Pending review", value: candidates.length, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-100" },
+    { label: "Open commitments", value: openCommitments.length, color: "text-gray-900", bg: "bg-gray-50", border: "border-gray-200" },
+    { label: "At risk", value: atRisk.length, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-100" },
+    { label: "Unowned", value: unowned.length, color: "text-red-600", bg: "bg-red-50", border: "border-red-100" },
   ];
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto">
+      {/* Breadcrumb */}
+      <button
+        onClick={() => router.push("/")}
+        className="text-xs text-gray-400 hover:text-gray-600 mb-6 flex items-center gap-1 transition-colors">
+        ← All workspaces
+      </button>
+
+      {/* Page header */}
       <div className="mb-8">
-        <div className="text-xs text-gray-400 mb-1 cursor-pointer hover:underline" onClick={() => router.push("/")}>← All workspaces</div>
-        <h1 className="text-2xl font-semibold">{ws?.name || "Loading…"}</h1>
-        <div className="text-sm text-gray-400">{ws?.organisation}</div>
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-base">
+            {ws?.name?.charAt(0)?.toUpperCase() ?? "…"}
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">{ws?.name ?? "Loading…"}</h1>
+            <div className="text-xs text-gray-400">{ws?.organisation}</div>
+          </div>
+        </div>
       </div>
 
-      {/* Key metrics */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Pending AE review", value: candidates.length, color: "text-blue-600" },
-          { label: "Open commitments", value: openCommitments.length, color: "text-gray-900" },
-          { label: "At risk", value: atRisk.length, color: "text-orange-600" },
-          { label: "Unowned", value: unowned.length, color: "text-red-600" },
-        ].map(m => (
-          <div key={m.label} className="bg-white border border-gray-200 rounded-lg p-4">
+      {/* Metrics row */}
+      <div className="grid grid-cols-4 gap-3 mb-8">
+        {metrics.map(m => (
+          <div key={m.label} className={`${m.bg} border ${m.border} rounded-xl p-4`}>
             <div className={`text-2xl font-bold ${m.color}`}>{m.value}</div>
-            <div className="text-xs text-gray-500 mt-1">{m.label}</div>
+            <div className="text-xs text-gray-500 mt-1 font-medium">{m.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Navigation cards */}
-      <div className="grid grid-cols-2 gap-4">
-        {navItems.map(item => (
-          <div key={item.path} onClick={() => router.push(`/workspace/${id}/${item.path}`)}
-            className="bg-white border border-gray-200 rounded-lg p-5 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all flex items-start justify-between">
-            <div>
-              <div className="font-medium text-sm mb-1">{item.label}</div>
-              <div className="text-xs text-gray-400">{item.desc}</div>
+      {/* Nav cards */}
+      <div className="grid grid-cols-2 gap-3">
+        {NAV_ITEMS.map(item => (
+          <div
+            key={item.path}
+            onClick={() => router.push(`/workspace/${id}/${item.path}`)}
+            className="bg-white border border-gray-200 rounded-xl p-5 cursor-pointer hover:border-blue-300 hover:shadow-sm transition-all flex items-start justify-between group">
+            <div className="flex items-start gap-3">
+              <span className="text-xl mt-0.5">{item.icon}</span>
+              <div>
+                <div className="font-medium text-sm text-gray-900 group-hover:text-blue-600 transition-colors">{item.label}</div>
+                <div className="text-xs text-gray-400 mt-0.5 leading-relaxed">{item.desc}</div>
+              </div>
             </div>
-            {item.badge !== null && item.badge > 0 && (
-              <span className="bg-blue-600 text-white text-xs font-semibold rounded-full px-2 py-0.5 ml-3 mt-0.5">
-                {item.badge}
+            {badges[item.path] > 0 && (
+              <span className={`${item.badgeColor} text-white text-xs font-semibold rounded-full px-2 py-0.5 ml-3 mt-0.5 shrink-0`}>
+                {badges[item.path]}
               </span>
             )}
           </div>

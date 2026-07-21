@@ -5,6 +5,7 @@ POST /candidates/{id}/review is the only code path that creates Commitment recor
 AE must see all candidates first. No candidate with verdict='pending' can have a commitment_id.
 """
 
+import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -151,7 +152,11 @@ async def review_candidate(
         commitment.account_name = src.account_name
 
     db.add(commitment)
-    await db.flush()
+    try:
+        await db.flush()
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"DB flush failed: {str(e)}")
 
     # Update candidate to link to commitment
     candidate.commitment_id = commitment.id
